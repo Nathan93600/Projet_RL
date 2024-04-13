@@ -45,9 +45,9 @@ def draw_board(grid):
 def drop_piece(grid, row, col, piece):
     grid[row][col] = piece
 
-# Fonction pour vérifier si une colonne est valide (non pleine)
+# Fonction pour vérifier si une colonne est valide (non pleine) et dans les limites de la grille
 def is_valid_location(grid, col):
-    return grid[ROW_COUNT - 1][col] == 0
+    return 0 <= col < COLUMN_COUNT and grid[ROW_COUNT - 1][col] == 0
 
 # Fonction pour trouver la première case vide dans une colonne
 def get_next_open_row(grid, col):
@@ -78,6 +78,10 @@ def winning_move(grid, piece):
             if grid[r][c] == piece and grid[r + 1][c - 1] == piece and grid[r + 2][c - 2] == piece and grid[r + 3][c - 3] == piece:
                 return True
 
+# Fonction pour vérifier s'il y a match nul
+def check_draw(grid):
+    return np.all(grid != 0)
+
 # Initialisation de la grille de jeu
 draw_board(grid)
 pygame.display.update()
@@ -88,15 +92,15 @@ AI = 1
 
 # Définition des joueurs pour chaque mode de jeu
 player1_type = AI  # Change this to select the type of player 1 (HUMAN or AI)
-player2_type = HUMAN  # Change this to select the type of player 2 (HUMAN or AI)
+player2_type = AI  # Change this to select the type of player 2 (HUMAN or AI)
 
 # Définition des joueurs
 players = {1: player1_type, 2: player2_type}
 
 # Q-learning parameters
-alpha = 0.15  # learning rate
+alpha = 0.01  # learning rate
 gamma = 0.99  # discount factor
-epsilon = 0.1  # exploration rate
+epsilon = 0.15  # exploration rate
 
 # Q-table initialization
 Q = np.zeros((ROW_COUNT * COLUMN_COUNT, COLUMN_COUNT))
@@ -122,6 +126,9 @@ while not game_over:
                     if winning_move(grid, turn % 2 + 1):
                         print(f"Player {turn % 2 + 1} wins!")
                         game_over = True
+                    elif check_draw(grid):
+                        print("It's a draw!")
+                        game_over = True
                     turn += 1  # Increment turn only if the move is valid
 
         elif players[turn % 2 + 1] == AI:
@@ -139,7 +146,7 @@ while not game_over:
                         row = get_next_open_row(next_state, move % COLUMN_COUNT)
                         drop_piece(next_state, row, move % COLUMN_COUNT, turn % 2 + 1)
                         q_index = np.ravel_multi_index((row, move % COLUMN_COUNT), (ROW_COUNT, COLUMN_COUNT))
-                        q_value = np.max(Q[q_index])
+                        q_value = Q[q_index, move % COLUMN_COUNT]  # Use Q-value for the chosen action
                         if q_value > max_q_value:
                             max_q_value = q_value
                             best_action = move % COLUMN_COUNT
@@ -150,6 +157,9 @@ while not game_over:
                     drop_piece(grid, row, col, turn % 2 + 1)
                     if winning_move(grid, turn % 2 + 1):
                         print(f"Player {turn % 2 + 1} wins!")
+                        game_over = True
+                    elif check_draw(grid):
+                        print("It's a draw!")
                         game_over = True
                     turn += 1  # Increment turn only if the move is valid
 
